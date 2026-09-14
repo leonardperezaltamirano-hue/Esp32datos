@@ -5,32 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard IoT ESP32</title>
   
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              bg: '#0f172a',
-              card: '#1e293b',
-              border: '#334155'
-            }
-          }
-        }
-      }
+      theme: { extend: { colors: { brand: { bg: '#0f172a', card: '#1e293b', border: '#334155' } } } }
     }
   </script>
 
-  <!-- FontAwesome Icons & Chart.js -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased selection:bg-blue-500 selection:text-white">
 
-  <!-- TOPBAR -->
+  <!-- HEADER -->
   <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-50 px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-md">
     <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
       <div class="flex items-center gap-3">
@@ -39,19 +27,18 @@
         </div>
         <div>
           <h1 class="text-lg sm:text-xl font-bold tracking-wide">ESP32 IoT Monitor</h1>
-          <p class="text-xs text-slate-400">Telemetría en Tiempo Real v1.0</p>
+          <p class="text-xs text-slate-400">Telemetría en Tiempo Real</p>
         </div>
       </div>
     </div>
 
-    <!-- Indicador de Estado y Tiempo -->
     <div class="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto border-t sm:border-t-0 border-slate-800 pt-3 sm:pt-0">
       <div class="flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 px-3 py-1.5 rounded-full text-xs">
         <span id="status-ping" class="relative flex h-3 w-3">
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
           <span class="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
         </span>
-        <span id="status-text" class="text-amber-400 font-medium">Iniciando...</span>
+        <span id="status-text" class="text-amber-400 font-medium">Conectando...</span>
       </div>
       <div class="text-xs text-slate-400">
         Última lect.: <span id="last-update" class="text-slate-200 font-mono">--:--:--</span>
@@ -59,13 +46,11 @@
     </div>
   </header>
 
-  <!-- CONTENIDO PRINCIPAL -->
+  <!-- CONTENIDO -->
   <main class="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
 
-    <!-- TARJETAS DE SENSORES -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-      
-      <!-- Card Temperatura -->
+      <!-- Temperatura -->
       <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5 shadow-lg relative overflow-hidden backdrop-blur-sm">
         <div class="flex justify-between items-start">
           <div>
@@ -78,11 +63,11 @@
         </div>
         <div class="mt-4 pt-3 border-t border-slate-700/40 flex justify-between items-center text-xs text-slate-400">
           <span>Sensor Térmico</span>
-          <span id="state-temp" class="text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">Normal</span>
+          <span id="state-temp" class="text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">OK</span>
         </div>
       </div>
 
-      <!-- Card Humedad -->
+      <!-- Humedad -->
       <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5 shadow-lg relative overflow-hidden backdrop-blur-sm">
         <div class="flex justify-between items-start">
           <div>
@@ -95,11 +80,11 @@
         </div>
         <div class="mt-4 pt-3 border-t border-slate-700/40 flex justify-between items-center text-xs text-slate-400">
           <span>Ambiente</span>
-          <span id="state-hum" class="text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">Óptimo</span>
+          <span id="state-hum" class="text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">OK</span>
         </div>
       </div>
 
-      <!-- Card Voltaje -->
+      <!-- Voltaje -->
       <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5 shadow-lg relative overflow-hidden backdrop-blur-sm sm:col-span-2 lg:col-span-1">
         <div class="flex justify-between items-start">
           <div>
@@ -112,42 +97,32 @@
         </div>
         <div class="mt-4 pt-3 border-t border-slate-700/40 flex justify-between items-center text-xs text-slate-400">
           <span>Alimentación</span>
-          <span id="state-volt" class="text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">Estable</span>
+          <span id="state-volt" class="text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">OK</span>
         </div>
       </div>
-
     </div>
 
-    <!-- SECCIÓN DE GRÁFICAS -->
+    <!-- GRÁFICAS -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      
-      <!-- Gráfica 1: Temperatura y Humedad -->
       <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 sm:p-5 shadow-lg backdrop-blur-sm">
         <h3 class="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-          <i class="fa-solid fa-chart-line text-rose-400"></i> Histórico de Temperatura y Humedad
+          <i class="fa-solid fa-chart-line text-rose-400"></i> Histórico Temperatura y Humedad
         </h3>
-        <div class="relative h-64 sm:h-72 w-full">
-          <canvas id="chartTempHum"></canvas>
-        </div>
+        <div class="relative h-64 sm:h-72 w-full"><canvas id="chartTempHum"></canvas></div>
       </div>
 
-      <!-- Gráfica 2: Voltaje -->
       <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 sm:p-5 shadow-lg backdrop-blur-sm">
         <h3 class="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-          <i class="fa-solid fa-wave-square text-amber-400"></i> Histórico de Voltaje
+          <i class="fa-solid fa-wave-square text-amber-400"></i> Histórico Voltaje
         </h3>
-        <div class="relative h-64 sm:h-72 w-full">
-          <canvas id="chartVoltaje"></canvas>
-        </div>
+        <div class="relative h-64 sm:h-72 w-full"><canvas id="chartVoltaje"></canvas></div>
       </div>
-
     </div>
 
   </main>
 
   <script>
-    // URL de Google Apps Script actualizada
-    const EXEC_URL = "https://script.google.com/macros/s/AKfycbySFel1FJasyPYgkB9-NK5UHwqStHTmzT2c356F3O2m_tlwyOmTAR0N5qxc6AIvRcokVg/exec";
+    const EXEC_URL = "https://script.google.com/macros/s/AKfycbxMkX8mUBvfgkdFsWn2e1wLJWDm9dnudFenE_ma6lBkGWSM5dTqh7sMb3_TP7coW5y0Yg/exec";
     const REFRESH_INTERVAL = 5000;
     const MAX_DATA_POINTS = 10;
 
@@ -158,83 +133,51 @@
     const elStatusPing = document.getElementById("status-ping");
     const elStatusText = document.getElementById("status-text");
 
-    // Configuración Gráfica Temp & Hum
+    // Gráfica Temp & Hum
     const ctxTempHum = document.getElementById('chartTempHum').getContext('2d');
     const chartTempHum = new Chart(ctxTempHum, {
       type: 'line',
       data: {
         labels: [],
         datasets: [
-          {
-            label: 'Temperatura (°C)',
-            borderColor: '#f43f5e',
-            backgroundColor: 'rgba(244, 63, 94, 0.15)',
-            data: [],
-            borderWidth: 2,
-            tension: 0.35,
-            fill: true
-          },
-          {
-            label: 'Humedad (%)',
-            borderColor: '#06b6d4',
-            backgroundColor: 'rgba(6, 182, 212, 0.15)',
-            data: [],
-            borderWidth: 2,
-            tension: 0.35,
-            fill: true
-          }
+          { label: 'Temperatura (°C)', borderColor: '#f43f5e', backgroundColor: 'rgba(244, 63, 94, 0.15)', data: [], borderWidth: 2, tension: 0.35, fill: true },
+          { label: 'Humedad (%)', borderColor: '#06b6d4', backgroundColor: 'rgba(6, 182, 212, 0.15)', data: [], borderWidth: 2, tension: 0.35, fill: true }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: { legend: { labels: { color: '#94a3b8' } } },
-        scales: {
-          x: { ticks: { color: '#64748b' }, grid: { color: '#334155' } },
-          y: { ticks: { color: '#64748b' }, grid: { color: '#334155' } }
-        }
+        scales: { x: { ticks: { color: '#64748b' }, grid: { color: '#334155' } }, y: { ticks: { color: '#64748b' }, grid: { color: '#334155' } } }
       }
     });
 
-    // Configuración Gráfica Voltaje
+    // Gráfica Voltaje
     const ctxVolt = document.getElementById('chartVoltaje').getContext('2d');
     const chartVolt = new Chart(ctxVolt, {
       type: 'line',
       data: {
         labels: [],
-        datasets: [{
-          label: 'Voltaje (V)',
-          borderColor: '#f59e0b',
-          backgroundColor: 'rgba(245, 158, 11, 0.15)',
-          data: [],
-          borderWidth: 2,
-          tension: 0.35,
-          fill: true
-        }]
+        datasets: [{ label: 'Voltaje (V)', borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.15)', data: [], borderWidth: 2, tension: 0.35, fill: true }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: { legend: { labels: { color: '#94a3b8' } } },
-        scales: {
-          x: { ticks: { color: '#64748b' }, grid: { color: '#334155' } },
-          y: { ticks: { color: '#64748b' }, grid: { color: '#334155' } }
-        }
+        scales: { x: { ticks: { color: '#64748b' }, grid: { color: '#334155' } }, y: { ticks: { color: '#64748b' }, grid: { color: '#334155' } } }
       }
     });
 
     let currentScript = null;
 
     function fetchSensorData() {
-      // Limpiar elemento de script previo para evitar saturar el DOM
       if (currentScript && currentScript.parentNode) {
         currentScript.parentNode.removeChild(currentScript);
       }
 
-      const callbackName = 'jsonp_' + Math.round(100000 * Math.random());
-      currentScript = document.createElement('script');
+      const callbackName = 'jsonp_cb_' + Math.floor(Math.random() * 1000000);
       
-      // Manejador Callback global (JSONP para evitar CORS)
+      // Definir Callback global
       window[callbackName] = function(data) {
         delete window[callbackName];
         if (currentScript && currentScript.parentNode) {
@@ -243,7 +186,9 @@
         actualizarDashboard(data);
       };
 
-      currentScript.onerror = function() {
+      currentScript = document.createElement('script');
+      currentScript.onerror = function(err) {
+        console.error("Error al cargar JSONP desde Apps Script:", err);
         delete window[callbackName];
         if (currentScript && currentScript.parentNode) {
           currentScript.parentNode.removeChild(currentScript);
@@ -251,7 +196,7 @@
         setConnectionStatus(false);
       };
 
-      currentScript.src = `${EXEC_URL}?callback=${callbackName}&_=${new Date().getTime()}`;
+      currentScript.src = `${EXEC_URL}?callback=${callbackName}&_=${Date.now()}`;
       document.head.appendChild(currentScript);
     }
 
@@ -259,12 +204,11 @@
       if (!data) return;
 
       if (data.fecha === "--" || data.fecha === "Error") {
-        elStatusText.textContent = "Esperando datos válidos...";
+        elStatusText.textContent = "Sin datos en hoja";
         elStatusText.className = "text-amber-400 font-medium";
         return;
       }
 
-      // Actualizar tarjetas numéricas
       elTemp.textContent = Number(data.temperatura).toFixed(1);
       elHum.textContent = Number(data.humedad).toFixed(1);
       elVolt.textContent = Number(data.voltaje).toFixed(2);
@@ -272,7 +216,6 @@
 
       setConnectionStatus(true);
 
-      // Formatear hora para el eje X de las gráficas
       const timeLabel = data.fecha.includes(' ') ? data.fecha.split(' ')[1] : data.fecha;
       const lastLabel = chartTempHum.data.labels[chartTempHum.data.labels.length - 1];
 
@@ -284,7 +227,6 @@
         chartTempHum.data.datasets[1].data.push(data.humedad);
         chartVolt.data.datasets[0].data.push(data.voltaje);
 
-        // Mantener solo los últimos N puntos de datos
         if (chartTempHum.data.labels.length > MAX_DATA_POINTS) {
           chartTempHum.data.labels.shift();
           chartTempHum.data.datasets[0].data.shift();
@@ -316,7 +258,6 @@
       }
     }
 
-    // Petición inicial y ciclo de refresco cada 5 segundos
     fetchSensorData();
     setInterval(fetchSensorData, REFRESH_INTERVAL);
   </script>
