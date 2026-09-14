@@ -29,7 +29,7 @@
         <i class="fa-solid fa-microchip text-2xl text-blue-500"></i>
       </div>
       <div>
-        <h1 class="text-lg sm:text-xl font-bold tracking-wide">ESP32 IoT Monitor By Leonar Pérez</h1>
+        <h1 class="text-lg sm:text-xl font-bold tracking-wide">ESP32 IoT Monitor</h1>
         <p class="text-xs text-slate-400">Telemetría y Control de Sensores</p>
       </div>
     </div>
@@ -108,12 +108,20 @@
   </main>
 
   <script>
-    // URL Actualizada
     const EXEC_URL = "https://script.google.com/macros/s/AKfycbw93kQEr_CzZ_Q6gPIGzUUEK5TpXPzNfaQOl7p7yYh4xXpyYfEPvTqt4b0yjH4m24Wy-A/exec";
-    const REFRESH_INTERVAL = 3000;
+    
+    // TIEMPOS DE REFRESCO ÓPTIMOS SEGÚN EL FILTRO (Milisegundos)
+    const REFRESH_RANGES = {
+      realtime: 5000,  // 5 segundos (Tiempo Real)
+      '1h': 15000,     // 15 segundos
+      '12h': 30000,    // 30 segundos
+      '1d': 60000,     // 1 minuto
+      '1w': 120000     // 2 minutos
+    };
 
     let isFetching = false;
     let currentRange = "realtime";
+    let timerId = null;
 
     function createChartConfig(color, bgColor) {
       return {
@@ -133,24 +141,20 @@
 
     function changeTimeRange(range) {
       currentRange = range;
-      document.querySelectorAll('.time-btn').forEach(btn => {
-        btn.classList.remove('bg-blue-600', 'text-white');
-        btn.classList.add('text-slate-400');
-      });
-      const activeBtn = document.getElementById(`btn-${range}`);
-      if (activeBtn) {
-        activeBtn.classList.add('bg-blue-600', 'text-white');
-        activeBtn.classList.remove('text-slate-400');
-      }
+      document.querySelectorAll('.time-btn').forEach(btn => btn.classList.remove('bg-blue-600', 'text-white'));
+      document.getElementById(`btn-${range}`)?.classList.add('bg-blue-600', 'text-white');
       
       ['temp', 'hum', 'volt'].forEach(id => {
         const el = document.getElementById(`label-range-${id}`);
         if(el) el.textContent = range.toUpperCase();
       });
+
+      // Reiniciar temporizador adaptativo según el rango seleccionado
+      if (timerId) clearInterval(timerId);
       fetchSensorData();
+      timerId = setInterval(fetchSensorData, REFRESH_RANGES[currentRange] || 5000);
     }
 
-    // Petición con soporte dual (Fetch + Fallback JSONP)
     function fetchSensorData() {
       if (isFetching) return;
       isFetching = true;
@@ -189,30 +193,56 @@
 
       if (Array.isArray(resData)) {
         renderHistorico(resData);
-      } else {
+      } else if (resData && typeof resData === 'object') {
         actualizarRealtime(resData);
       }
     }
 
+    // Limpia y normaliza números que vienen con coma o nulos
+    function parsearValor(val) {
+      if (val === undefined || val === null || val === '') return 0;
+      let num = parseFloat(String(val).replace(',', '.'));
+      return isNaN(num) ? 0 : num;
+    }
+
+    // Normaliza cualquier formato de fecha (ISO, timestamp o HH:mm:ss)
+    function parsearFecha(fechaStr) {
+      if (!fechaStr) return '--';
+      let str = String(fechaStr);
+      if (str.includes('T')) {
+        let parts = str.split('T');
+        let time = parts[1].substring(0, 8);
+        return time;
+      }
+      return str.includes(' ') ? str.split(' ')[1] : str;
+    }
+
     function actualizarRealtime(data) {
       if (!data || data.fecha === "--" || data.fecha === "Error") return;
-      
-      document.getElementById("val-temp").textContent = Number(data.temperatura || 0).toFixed(1);
-      document.getElementById("val-hum").textContent = Number(data.humedad || 0).toFixed(1);
-      document.getElementById("val-volt").textContent = Number(data.voltaje || 0).toFixed(2);
-      document.getElementById("last-update").textContent = data.fecha;
 
-      const timeLabel = data.fecha.includes(' ') ? data.fecha.split(' ')[1] : data.fecha;
-      
+      const t = parsearValor(data.temperatura);
+      const h = parsearValor(data.humedad);
+      const v = parsearValor(data.voltaje);
+      const f = parsearFecha(data.fecha);
+
+      document.getElementById("val-temp").textContent = t.toFixed(1);
+      document.getElementById("val-hum").textContent = h.toFixed(1);
+      document.getElementById("val-volt").textContent = v.toFixed(2);
+      document.getElementById("last-update").textContent = f;
+
       [chartTemp, chartHum, chartVolt].forEach((chart, idx) => {
-        const val = [data.temperatura, data.humedad, data.voltaje][idx];
-        chart.data.labels.push(timeLabel);
-        chart.data.datasets[0].data.push(val);
-        if (chart.data.labels.length > 15) {
-          chart.data.labels.shift();
-          chart.data.datasets[0].data.shift();
+        const val = [t, h, v][idx];
+        const lastLabel = chart.data.labels[chart.data.labels.length - 1];
+
+        if (lastLabel !== f) {
+          chart.data.labels.push(f);
+          chart.data.datasets[0].data.push(val);
+          if (chart.data.labels.length > 20) {
+            chart.data.labels.shift();
+            chart.data.datasets[0].data.shift();
+          }
+          chart.update('none');
         }
-        chart.update('none');
       });
     }
 
@@ -220,23 +250,38 @@
       if (!dataArray || dataArray.length === 0) return;
 
       const ultimo = dataArray[dataArray.length - 1];
-      document.getElementById("val-temp").textContent = Number(ultimo.temperatura || 0).toFixed(1);
-      document.getElementById("val-hum").textContent = Number(ultimo.humedad || 0).toFixed(1);
-      document.getElementById("val-volt").textContent = Number(ultimo.voltaje || 0).toFixed(2);
-      document.getElementById("last-update").textContent = ultimo.fecha;
+      const tUlt = parsearValor(ultimo.temperatura);
+      const hUlt = parsearValor(ultimo.humedad);
+      const vUlt = parsearValor(ultimo.voltaje);
+      const fUlt = parsearFecha(ultimo.fecha);
 
-      const labels = dataArray.map(item => item.fecha);
-      
+      document.getElementById("val-temp").textContent = tUlt.toFixed(1);
+      document.getElementById("val-hum").textContent = hUlt.toFixed(1);
+      document.getElementById("val-volt").textContent = vUlt.toFixed(2);
+      document.getElementById("last-update").textContent = fUlt;
+
+      const labels = [];
+      const tempVals = [];
+      const humVals = [];
+      const voltVals = [];
+
+      dataArray.forEach(item => {
+        labels.push(parsearFecha(item.fecha));
+        tempVals.push(parsearValor(item.temperatura));
+        humVals.push(parsearValor(item.humedad));
+        voltVals.push(parsearValor(item.voltaje));
+      });
+
       chartTemp.data.labels = labels; 
-      chartTemp.data.datasets[0].data = dataArray.map(i => i.temperatura); 
+      chartTemp.data.datasets[0].data = tempVals; 
       chartTemp.update('none');
 
       chartHum.data.labels = labels; 
-      chartHum.data.datasets[0].data = dataArray.map(i => i.humedad); 
+      chartHum.data.datasets[0].data = humVals; 
       chartHum.update('none');
 
       chartVolt.data.labels = labels; 
-      chartVolt.data.datasets[0].data = dataArray.map(i => i.voltaje); 
+      chartVolt.data.datasets[0].data = voltVals; 
       chartVolt.update('none');
     }
 
@@ -260,11 +305,8 @@
       }
     }
 
-    // Inicializar
+    // Inicializar vista Realtime
     changeTimeRange('realtime');
-    setInterval(() => { 
-      if (currentRange === 'realtime') fetchSensorData(); 
-    }, REFRESH_INTERVAL);
   </script>
 </body>
 </html>
