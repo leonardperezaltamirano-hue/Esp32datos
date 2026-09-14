@@ -22,14 +22,14 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased">
 
-  <!-- HEADER CON CONTROLES DE TIEMPO -->
+  <!-- HEADER -->
   <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-50 px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-md">
     <div class="flex items-center gap-3">
       <div class="p-2.5 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20">
         <i class="fa-solid fa-microchip text-2xl text-blue-500"></i>
       </div>
       <div>
-        <h1 class="text-lg sm:text-xl font-bold tracking-wide">ESP32 IoT Monitor</h1>
+        <h1 class="text-lg sm:text-xl font-bold tracking-wide">ESP32 IoT Monitor By Leonar Pérez</h1>
         <p class="text-xs text-slate-400">Telemetría y Control de Sensores</p>
       </div>
     </div>
@@ -49,7 +49,7 @@
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
           <span class="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
         </span>
-        <span id="status-text" class="text-amber-400 font-medium">Cargando...</span>
+        <span id="status-text" class="text-amber-400 font-medium">Conectando...</span>
       </div>
     </div>
   </header>
@@ -108,6 +108,7 @@
   </main>
 
   <script>
+    // URL Actualizada
     const EXEC_URL = "https://script.google.com/macros/s/AKfycbw93kQEr_CzZ_Q6gPIGzUUEK5TpXPzNfaQOl7p7yYh4xXpyYfEPvTqt4b0yjH4m24Wy-A/exec";
     const REFRESH_INTERVAL = 3000;
 
@@ -132,39 +133,73 @@
 
     function changeTimeRange(range) {
       currentRange = range;
-      document.querySelectorAll('.time-btn').forEach(btn => btn.classList.remove('bg-blue-600', 'text-white'));
-      document.getElementById(`btn-${range}`)?.classList.add('bg-blue-600', 'text-white');
+      document.querySelectorAll('.time-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-600', 'text-white');
+        btn.classList.add('text-slate-400');
+      });
+      const activeBtn = document.getElementById(`btn-${range}`);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-blue-600', 'text-white');
+        activeBtn.classList.remove('text-slate-400');
+      }
       
-      ['temp', 'hum', 'volt'].forEach(id => document.getElementById(`label-range-${id}`).textContent = range.toUpperCase());
+      ['temp', 'hum', 'volt'].forEach(id => {
+        const el = document.getElementById(`label-range-${id}`);
+        if(el) el.textContent = range.toUpperCase();
+      });
       fetchSensorData();
     }
 
-    async function fetchSensorData() {
+    // Petición con soporte dual (Fetch + Fallback JSONP)
+    function fetchSensorData() {
       if (isFetching) return;
       isFetching = true;
 
-      try {
-        const response = await fetch(`${EXEC_URL}?range=${currentRange}&_=${Date.now()}`);
-        const resData = await response.json();
+      const callbackName = 'handleScriptResponse_' + Math.floor(Math.random() * 100000);
+      
+      window[callbackName] = function(resData) {
+        procesarRespuesta(resData);
+        cleanup();
+      };
 
-        if (Array.isArray(resData)) {
-          renderHistorico(resData);
-        } else {
-          actualizarRealtime(resData);
-        }
-        setConnectionStatus(true);
-      } catch (err) {
+      const script = document.createElement('script');
+      script.src = `${EXEC_URL}?range=${currentRange}&callback=${callbackName}&_=${Date.now()}`;
+      
+      script.onerror = function() {
         setConnectionStatus(false);
-      } finally {
+        cleanup();
+      };
+
+      function cleanup() {
+        if (script.parentNode) script.parentNode.removeChild(script);
+        delete window[callbackName];
         isFetching = false;
+      }
+
+      document.body.appendChild(script);
+    }
+
+    function procesarRespuesta(resData) {
+      if (!resData) {
+        setConnectionStatus(false);
+        return;
+      }
+
+      setConnectionStatus(true);
+
+      if (Array.isArray(resData)) {
+        renderHistorico(resData);
+      } else {
+        actualizarRealtime(resData);
       }
     }
 
     function actualizarRealtime(data) {
-      if (!data || data.fecha === "--") return;
-      document.getElementById("val-temp").textContent = Number(data.temperatura).toFixed(1);
-      document.getElementById("val-hum").textContent = Number(data.humedad).toFixed(1);
-      document.getElementById("val-volt").textContent = Number(data.voltaje).toFixed(2);
+      if (!data || data.fecha === "--" || data.fecha === "Error") return;
+      
+      document.getElementById("val-temp").textContent = Number(data.temperatura || 0).toFixed(1);
+      document.getElementById("val-hum").textContent = Number(data.humedad || 0).toFixed(1);
+      document.getElementById("val-volt").textContent = Number(data.voltaje || 0).toFixed(2);
       document.getElementById("last-update").textContent = data.fecha;
 
       const timeLabel = data.fecha.includes(' ') ? data.fecha.split(' ')[1] : data.fecha;
@@ -183,26 +218,53 @@
 
     function renderHistorico(dataArray) {
       if (!dataArray || dataArray.length === 0) return;
+
       const ultimo = dataArray[dataArray.length - 1];
-      document.getElementById("val-temp").textContent = Number(ultimo.temperatura).toFixed(1);
-      document.getElementById("val-hum").textContent = Number(ultimo.humedad).toFixed(1);
-      document.getElementById("val-volt").textContent = Number(ultimo.voltaje).toFixed(2);
+      document.getElementById("val-temp").textContent = Number(ultimo.temperatura || 0).toFixed(1);
+      document.getElementById("val-hum").textContent = Number(ultimo.humedad || 0).toFixed(1);
+      document.getElementById("val-volt").textContent = Number(ultimo.voltaje || 0).toFixed(2);
       document.getElementById("last-update").textContent = ultimo.fecha;
 
       const labels = dataArray.map(item => item.fecha);
       
-      chartTemp.data.labels = labels; chartTemp.data.datasets[0].data = dataArray.map(i => i.temperatura); chartTemp.update('none');
-      chartHum.data.labels = labels; chartHum.data.datasets[0].data = dataArray.map(i => i.humedad); chartHum.update('none');
-      chartVolt.data.labels = labels; chartVolt.data.datasets[0].data = dataArray.map(i => i.voltaje); chartVolt.update('none');
+      chartTemp.data.labels = labels; 
+      chartTemp.data.datasets[0].data = dataArray.map(i => i.temperatura); 
+      chartTemp.update('none');
+
+      chartHum.data.labels = labels; 
+      chartHum.data.datasets[0].data = dataArray.map(i => i.humedad); 
+      chartHum.update('none');
+
+      chartVolt.data.labels = labels; 
+      chartVolt.data.datasets[0].data = dataArray.map(i => i.voltaje); 
+      chartVolt.update('none');
     }
 
     function setConnectionStatus(isOnline) {
-      document.getElementById("status-text").textContent = isOnline ? "Conectado" : "Desconectado";
-      document.getElementById("status-text").className = isOnline ? "text-emerald-400 font-medium" : "text-rose-400 font-medium";
+      const pingEl = document.getElementById("status-ping");
+      const textEl = document.getElementById("status-text");
+      
+      if (isOnline) {
+        pingEl.className = "relative flex h-3 w-3";
+        pingEl.innerHTML = `
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+        `;
+        textEl.textContent = "Conectado";
+        textEl.className = "text-emerald-400 font-medium";
+      } else {
+        pingEl.className = "relative flex h-3 w-3 bg-rose-500 rounded-full";
+        pingEl.innerHTML = '';
+        textEl.textContent = "Error de Red";
+        textEl.className = "text-rose-400 font-medium";
+      }
     }
 
+    // Inicializar
     changeTimeRange('realtime');
-    setInterval(() => { if (currentRange === 'realtime') fetchSensorData(); }, REFRESH_INTERVAL);
+    setInterval(() => { 
+      if (currentRange === 'realtime') fetchSensorData(); 
+    }, REFRESH_INTERVAL);
   </script>
 </body>
 </html>
