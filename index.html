@@ -5,43 +5,45 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard IoT ESP32</title>
   
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
-          colors: {
-            brand: { bg: '#0f172a', card: '#1e293b', border: '#334155' }
-          }
+          colors: { brand: { bg: '#0f172a', card: '#1e293b', border: '#334155' } }
         }
       }
     }
   </script>
 
-  <!-- FontAwesome Icons & Chart.js -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased selection:bg-blue-500 selection:text-white">
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased">
 
-  <!-- HEADER -->
+  <!-- HEADER CON CONTROLES DE TIEMPO -->
   <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-50 px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-md">
-    <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
-      <div class="flex items-center gap-3">
-        <div class="p-2.5 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20 shadow-inner">
-          <i class="fa-solid fa-microchip text-2xl text-blue-500"></i>
-        </div>
-        <div>
-          <h1 class="text-lg sm:text-xl font-bold tracking-wide">ESP32 IoT Monitor</h1>
-          <p class="text-xs text-slate-400">Telemetría en Tiempo Real</p>
-        </div>
+    <div class="flex items-center gap-3">
+      <div class="p-2.5 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20">
+        <i class="fa-solid fa-microchip text-2xl text-blue-500"></i>
+      </div>
+      <div>
+        <h1 class="text-lg sm:text-xl font-bold tracking-wide">ESP32 IoT Monitor</h1>
+        <p class="text-xs text-slate-400">Telemetría y Control de Sensores</p>
       </div>
     </div>
 
-    <!-- Indicador de Estado y Tiempo -->
-    <div class="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto border-t sm:border-t-0 border-slate-800 pt-3 sm:pt-0">
+    <!-- Filtros de tiempo -->
+    <div class="flex flex-wrap items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+      <div class="flex items-center gap-1.5 bg-slate-800 border border-slate-700 p-1 rounded-xl text-xs">
+        <button onclick="changeTimeRange('realtime')" id="btn-realtime" class="time-btn px-2.5 py-1 rounded-lg transition-colors font-medium text-slate-400 hover:text-white">Realtime</button>
+        <button onclick="changeTimeRange('1h')" id="btn-1h" class="time-btn px-2.5 py-1 rounded-lg transition-colors font-medium text-slate-400 hover:text-white">1 Hora</button>
+        <button onclick="changeTimeRange('12h')" id="btn-12h" class="time-btn px-2.5 py-1 rounded-lg transition-colors font-medium text-slate-400 hover:text-white">12 Horas</button>
+        <button onclick="changeTimeRange('1d')" id="btn-1d" class="time-btn px-2.5 py-1 rounded-lg transition-colors font-medium text-slate-400 hover:text-white">1 Día</button>
+        <button onclick="changeTimeRange('1w')" id="btn-1w" class="time-btn px-2.5 py-1 rounded-lg transition-colors font-medium text-slate-400 hover:text-white">1 Semana</button>
+      </div>
+
       <div class="flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 px-3 py-1.5 rounded-full text-xs">
         <span id="status-ping" class="relative flex h-3 w-3">
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
@@ -49,226 +51,158 @@
         </span>
         <span id="status-text" class="text-amber-400 font-medium">Cargando...</span>
       </div>
-      <div class="text-xs text-slate-400">
-        Última lect.: <span id="last-update" class="text-slate-200 font-mono">--:--:--</span>
-      </div>
     </div>
   </header>
 
-  <!-- CONTENIDO PRINCIPAL -->
+  <!-- TARJETAS Y TRES GRÁFICAS INDEPENDIENTES -->
   <main class="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
 
-    <!-- TARJETAS DE SENSORES -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+    <!-- Tarjetas de métricas rápidas -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5 shadow-lg">
+        <p class="text-xs font-semibold text-slate-400 uppercase">Temperatura</p>
+        <h2 class="text-3xl font-extrabold text-white mt-2"><span id="val-temp">--</span> <span class="text-lg text-rose-500">°C</span></h2>
+        <p class="text-xs text-slate-400 mt-3">Última lect.: <span id="last-update" class="text-slate-200 font-mono">--:--:--</span></p>
+      </div>
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5 shadow-lg">
+        <p class="text-xs font-semibold text-slate-400 uppercase">Humedad</p>
+        <h2 class="text-3xl font-extrabold text-white mt-2"><span id="val-hum">--</span> <span class="text-lg text-cyan-500">%</span></h2>
+      </div>
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5 shadow-lg">
+        <p class="text-xs font-semibold text-slate-400 uppercase">Voltaje</p>
+        <h2 class="text-3xl font-extrabold text-white mt-2"><span id="val-volt">--</span> <span class="text-lg text-amber-500">V</span></h2>
+      </div>
+    </div>
+
+    <!-- Gráficas independientes -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       
-      <!-- Card Temperatura -->
-      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5 shadow-lg backdrop-blur-sm">
-        <div class="flex justify-between items-start">
-          <div>
-            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Temperatura</p>
-            <h2 class="text-3xl sm:text-4xl font-extrabold text-white mt-2"><span id="val-temp">--</span> <span class="text-lg text-rose-500 font-normal">°C</span></h2>
-          </div>
-          <div class="p-3 bg-rose-500/10 text-rose-500 rounded-xl border border-rose-500/20">
-            <i class="fa-solid fa-temperature-high text-2xl"></i>
-          </div>
+      <!-- Gráfica Temperatura -->
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 shadow-lg">
+        <div class="flex justify-between mb-4">
+          <h3 class="text-sm font-semibold text-slate-300"><i class="fa-solid fa-temperature-high text-rose-400"></i> Temperatura</h3>
+          <span class="text-xs text-slate-400 font-mono" id="label-range-temp">REALTIME</span>
         </div>
-        <div class="mt-4 pt-3 border-t border-slate-700/40 flex justify-between items-center text-xs text-slate-400">
-          <span>Sensor Térmico</span>
-          <span class="text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">Activo</span>
-        </div>
+        <div class="relative h-60 w-full"><canvas id="chartTemperatura"></canvas></div>
       </div>
 
-      <!-- Card Humedad -->
-      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5 shadow-lg backdrop-blur-sm">
-        <div class="flex justify-between items-start">
-          <div>
-            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Humedad Relativa</p>
-            <h2 class="text-3xl sm:text-4xl font-extrabold text-white mt-2"><span id="val-hum">--</span> <span class="text-lg text-cyan-500 font-normal">%</span></h2>
-          </div>
-          <div class="p-3 bg-cyan-500/10 text-cyan-400 rounded-xl border border-cyan-500/20">
-            <i class="fa-solid fa-droplet text-2xl"></i>
-          </div>
+      <!-- Gráfica Humedad -->
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 shadow-lg">
+        <div class="flex justify-between mb-4">
+          <h3 class="text-sm font-semibold text-slate-300"><i class="fa-solid fa-droplet text-cyan-400"></i> Humedad</h3>
+          <span class="text-xs text-slate-400 font-mono" id="label-range-hum">REALTIME</span>
         </div>
-        <div class="mt-4 pt-3 border-t border-slate-700/40 flex justify-between items-center text-xs text-slate-400">
-          <span>Ambiente</span>
-          <span class="text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">Activo</span>
-        </div>
+        <div class="relative h-60 w-full"><canvas id="chartHumedad"></canvas></div>
       </div>
 
-      <!-- Card Voltaje -->
-      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5 shadow-lg backdrop-blur-sm sm:col-span-2 lg:col-span-1">
-        <div class="flex justify-between items-start">
-          <div>
-            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Voltaje Sistema</p>
-            <h2 class="text-3xl sm:text-4xl font-extrabold text-white mt-2"><span id="val-volt">--</span> <span class="text-lg text-amber-500 font-normal">V</span></h2>
-          </div>
-          <div class="p-3 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
-            <i class="fa-solid fa-bolt text-2xl"></i>
-          </div>
+      <!-- Gráfica Voltaje -->
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 shadow-lg">
+        <div class="flex justify-between mb-4">
+          <h3 class="text-sm font-semibold text-slate-300"><i class="fa-solid fa-bolt text-amber-400"></i> Voltaje</h3>
+          <span class="text-xs text-slate-400 font-mono" id="label-range-volt">REALTIME</span>
         </div>
-        <div class="mt-4 pt-3 border-t border-slate-700/40 flex justify-between items-center text-xs text-slate-400">
-          <span>Alimentación</span>
-          <span class="text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">Estable</span>
-        </div>
+        <div class="relative h-60 w-full"><canvas id="chartVoltaje"></canvas></div>
       </div>
 
     </div>
-
-    <!-- SECCIÓN DE GRÁFICAS -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 sm:p-5 shadow-lg backdrop-blur-sm">
-        <h3 class="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-          <i class="fa-solid fa-chart-line text-rose-400"></i> Histórico Temperatura y Humedad
-        </h3>
-        <div class="relative h-64 sm:h-72 w-full">
-          <canvas id="chartTempHum"></canvas>
-        </div>
-      </div>
-
-      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 sm:p-5 shadow-lg backdrop-blur-sm">
-        <h3 class="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-          <i class="fa-solid fa-wave-square text-amber-400"></i> Histórico Voltaje
-        </h3>
-        <div class="relative h-64 sm:h-72 w-full">
-          <canvas id="chartVoltaje"></canvas>
-        </div>
-      </div>
-    </div>
-
   </main>
 
   <script>
-    // URL Actualizada
-    const EXEC_URL = "https://script.google.com/macros/s/AKfycbwQelf5PEONu4wOabzo7-9h4KrzB4CcKzk1BFgZKbI2-Y8Kb88Y6kQfq5HFCZBKFFWb9w/exec";
-    const REFRESH_INTERVAL = 3000; // Frecuencia de actualización en milisegundos (3 segundos)
-    const MAX_DATA_POINTS = 12;
-
-    const elTemp = document.getElementById("val-temp");
-    const elHum = document.getElementById("val-hum");
-    const elVolt = document.getElementById("val-volt");
-    const elLastUpdate = document.getElementById("last-update");
-    const elStatusPing = document.getElementById("status-ping");
-    const elStatusText = document.getElementById("status-text");
+    const EXEC_URL = "https://script.google.com/macros/s/AKfycbw93kQEr_CzZ_Q6gPIGzUUEK5TpXPzNfaQOl7p7yYh4xXpyYfEPvTqt4b0yjH4m24Wy-A/exec";
+    const REFRESH_INTERVAL = 3000;
 
     let isFetching = false;
+    let currentRange = "realtime";
 
-    // Configuración optimizada de Chart.js (sin animaciones pesadas)
-    const chartOptions = {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: false, // Desactivar animación para renderizado fluido
-      plugins: { legend: { labels: { color: '#94a3b8' } } },
-      scales: {
-        x: { ticks: { color: '#64748b' }, grid: { color: '#334155' } },
-        y: { ticks: { color: '#64748b' }, grid: { color: '#334155' } }
-      }
-    };
+    function createChartConfig(color, bgColor) {
+      return {
+        type: 'line',
+        data: { labels: [], datasets: [{ borderColor: color, backgroundColor: bgColor, data: [], borderWidth: 2, tension: 0.2, pointRadius: 2, fill: true }] },
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { ticks: { color: '#64748b', maxTicksLimit: 6 }, grid: { color: '#334155' } }, y: { ticks: { color: '#64748b' }, grid: { color: '#334155' } } }
+        }
+      };
+    }
 
-    // Gráfica Temperatura y Humedad
-    const chartTempHum = new Chart(document.getElementById('chartTempHum').getContext('2d'), {
-      type: 'line',
-      data: {
-        labels: [],
-        datasets: [
-          { label: 'Temp (°C)', borderColor: '#f43f5e', backgroundColor: 'rgba(244, 63, 94, 0.1)', data: [], borderWidth: 2, tension: 0.2, fill: true },
-          { label: 'Hum (%)', borderColor: '#06b6d4', backgroundColor: 'rgba(6, 182, 212, 0.1)', data: [], borderWidth: 2, tension: 0.2, fill: true }
-        ]
-      },
-      options: chartOptions
-    });
+    const chartTemp = new Chart(document.getElementById('chartTemperatura'), createChartConfig('#f43f5e', 'rgba(244, 63, 94, 0.1)'));
+    const chartHum = new Chart(document.getElementById('chartHumedad'), createChartConfig('#06b6d4', 'rgba(6, 182, 212, 0.1)'));
+    const chartVolt = new Chart(document.getElementById('chartVoltaje'), createChartConfig('#f59e0b', 'rgba(245, 158, 11, 0.1)'));
 
-    // Gráfica Voltaje
-    const chartVolt = new Chart(document.getElementById('chartVoltaje').getContext('2d'), {
-      type: 'line',
-      data: {
-        labels: [],
-        datasets: [
-          { label: 'Voltaje (V)', borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)', data: [], borderWidth: 2, tension: 0.2, fill: true }
-        ]
-      },
-      options: chartOptions
-    });
+    function changeTimeRange(range) {
+      currentRange = range;
+      document.querySelectorAll('.time-btn').forEach(btn => btn.classList.remove('bg-blue-600', 'text-white'));
+      document.getElementById(`btn-${range}`)?.classList.add('bg-blue-600', 'text-white');
+      
+      ['temp', 'hum', 'volt'].forEach(id => document.getElementById(`label-range-${id}`).textContent = range.toUpperCase());
+      fetchSensorData();
+    }
 
-    // Petición asíncrona optimizada con fetch
     async function fetchSensorData() {
-      if (isFetching) return; // Evitar peticiones encimadas
+      if (isFetching) return;
       isFetching = true;
 
       try {
-        const response = await fetch(`${EXEC_URL}?_=${Date.now()}`, {
-          method: 'GET',
-          redirect: 'follow'
-        });
+        const response = await fetch(`${EXEC_URL}?range=${currentRange}&_=${Date.now()}`);
+        const resData = await response.json();
 
-        if (!response.ok) throw new Error("Error en la red");
-
-        const data = await response.json();
-        actualizarDashboard(data);
+        if (Array.isArray(resData)) {
+          renderHistorico(resData);
+        } else {
+          actualizarRealtime(resData);
+        }
         setConnectionStatus(true);
       } catch (err) {
-        console.error("Error al consultar datos:", err);
         setConnectionStatus(false);
       } finally {
         isFetching = false;
       }
     }
 
-    function actualizarDashboard(data) {
-      if (!data || data.fecha === "--" || data.fecha === "Error") return;
+    function actualizarRealtime(data) {
+      if (!data || data.fecha === "--") return;
+      document.getElementById("val-temp").textContent = Number(data.temperatura).toFixed(1);
+      document.getElementById("val-hum").textContent = Number(data.humedad).toFixed(1);
+      document.getElementById("val-volt").textContent = Number(data.voltaje).toFixed(2);
+      document.getElementById("last-update").textContent = data.fecha;
 
-      // Actualizar visualización numérica instantánea
-      elTemp.textContent = Number(data.temperatura).toFixed(1);
-      elHum.textContent = Number(data.humedad).toFixed(1);
-      elVolt.textContent = Number(data.voltaje).toFixed(2);
-      elLastUpdate.textContent = data.fecha;
-
-      // Extraer hora para el eje X
       const timeLabel = data.fecha.includes(' ') ? data.fecha.split(' ')[1] : data.fecha;
-      const lastLabel = chartTempHum.data.labels[chartTempHum.data.labels.length - 1];
-
-      // Insertar nuevos datos solo si la hora ha cambiado
-      if (lastLabel !== timeLabel) {
-        chartTempHum.data.labels.push(timeLabel);
-        chartVolt.data.labels.push(timeLabel);
-
-        chartTempHum.data.datasets[0].data.push(data.temperatura);
-        chartTempHum.data.datasets[1].data.push(data.humedad);
-        chartVolt.data.datasets[0].data.push(data.voltaje);
-
-        if (chartTempHum.data.labels.length > MAX_DATA_POINTS) {
-          chartTempHum.data.labels.shift();
-          chartTempHum.data.datasets[0].data.shift();
-          chartTempHum.data.datasets[1].data.shift();
-
-          chartVolt.data.labels.shift();
-          chartVolt.data.datasets[0].data.shift();
+      
+      [chartTemp, chartHum, chartVolt].forEach((chart, idx) => {
+        const val = [data.temperatura, data.humedad, data.voltaje][idx];
+        chart.data.labels.push(timeLabel);
+        chart.data.datasets[0].data.push(val);
+        if (chart.data.labels.length > 15) {
+          chart.data.labels.shift();
+          chart.data.datasets[0].data.shift();
         }
+        chart.update('none');
+      });
+    }
 
-        chartTempHum.update('none'); // Actualización rápida sin re-renderizado total
-        chartVolt.update('none');
-      }
+    function renderHistorico(dataArray) {
+      if (!dataArray || dataArray.length === 0) return;
+      const ultimo = dataArray[dataArray.length - 1];
+      document.getElementById("val-temp").textContent = Number(ultimo.temperatura).toFixed(1);
+      document.getElementById("val-hum").textContent = Number(ultimo.humedad).toFixed(1);
+      document.getElementById("val-volt").textContent = Number(ultimo.voltaje).toFixed(2);
+      document.getElementById("last-update").textContent = ultimo.fecha;
+
+      const labels = dataArray.map(item => item.fecha);
+      
+      chartTemp.data.labels = labels; chartTemp.data.datasets[0].data = dataArray.map(i => i.temperatura); chartTemp.update('none');
+      chartHum.data.labels = labels; chartHum.data.datasets[0].data = dataArray.map(i => i.humedad); chartHum.update('none');
+      chartVolt.data.labels = labels; chartVolt.data.datasets[0].data = dataArray.map(i => i.voltaje); chartVolt.update('none');
     }
 
     function setConnectionStatus(isOnline) {
-      if (isOnline) {
-        elStatusPing.className = "relative flex h-3 w-3";
-        elStatusPing.innerHTML = `
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-        `;
-        elStatusText.textContent = "Conectado";
-        elStatusText.className = "text-emerald-400 font-medium";
-      } else {
-        elStatusPing.className = "relative flex h-3 w-3 bg-rose-500 rounded-full";
-        elStatusPing.innerHTML = '';
-        elStatusText.textContent = "Desconectado";
-        elStatusText.className = "text-rose-400 font-medium";
-      }
+      document.getElementById("status-text").textContent = isOnline ? "Conectado" : "Desconectado";
+      document.getElementById("status-text").className = isOnline ? "text-emerald-400 font-medium" : "text-rose-400 font-medium";
     }
 
-    // Petición inmediata al cargar y ciclo de 3 segundos
-    fetchSensorData();
-    setInterval(fetchSensorData, REFRESH_INTERVAL);
+    changeTimeRange('realtime');
+    setInterval(() => { if (currentRange === 'realtime') fetchSensorData(); }, REFRESH_INTERVAL);
   </script>
 </body>
 </html>
