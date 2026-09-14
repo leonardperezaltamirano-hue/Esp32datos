@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard IoT ESP32</title>
+  <title>Dashboard IoT ESP32 - Realtime</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -23,34 +23,24 @@
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased">
 
   <!-- HEADER -->
-  <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-50 px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-md">
+  <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-50 px-4 sm:px-6 py-4 flex justify-between items-center shadow-md">
     <div class="flex items-center gap-3">
       <div class="p-2.5 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20">
         <i class="fa-solid fa-microchip text-2xl text-blue-500"></i>
       </div>
       <div>
         <h1 class="text-lg sm:text-xl font-bold tracking-wide">ESP32 IoT Monitor</h1>
-        <p class="text-xs text-slate-400">Telemetría y Control de Sensores</p>
+        <p class="text-xs text-slate-400">Telemetría en Tiempo Real</p>
       </div>
     </div>
 
-    <!-- Filtros de tiempo -->
-    <div class="flex flex-wrap items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
-      <div class="flex items-center gap-1.5 bg-slate-800 border border-slate-700 p-1 rounded-xl text-xs">
-        <button onclick="changeTimeRange('realtime')" id="btn-realtime" class="time-btn px-2.5 py-1 rounded-lg transition-colors font-medium text-slate-400 hover:text-white">Realtime</button>
-        <button onclick="changeTimeRange('1h')" id="btn-1h" class="time-btn px-2.5 py-1 rounded-lg transition-colors font-medium text-slate-400 hover:text-white">1 Hora</button>
-        <button onclick="changeTimeRange('12h')" id="btn-12h" class="time-btn px-2.5 py-1 rounded-lg transition-colors font-medium text-slate-400 hover:text-white">12 Horas</button>
-        <button onclick="changeTimeRange('1d')" id="btn-1d" class="time-btn px-2.5 py-1 rounded-lg transition-colors font-medium text-slate-400 hover:text-white">1 Día</button>
-        <button onclick="changeTimeRange('1w')" id="btn-1w" class="time-btn px-2.5 py-1 rounded-lg transition-colors font-medium text-slate-400 hover:text-white">1 Semana</button>
-      </div>
-
-      <div class="flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 px-3 py-1.5 rounded-full text-xs">
-        <span id="status-ping" class="relative flex h-3 w-3">
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
-        </span>
-        <span id="status-text" class="text-amber-400 font-medium">Conectando...</span>
-      </div>
+    <!-- Estado de conexión -->
+    <div class="flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 px-3 py-1.5 rounded-full text-xs">
+      <span id="status-ping" class="relative flex h-3 w-3">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+      </span>
+      <span id="status-text" class="text-amber-400 font-medium">Conectando...</span>
     </div>
   </header>
 
@@ -81,7 +71,7 @@
       <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 shadow-lg">
         <div class="flex justify-between mb-4">
           <h3 class="text-sm font-semibold text-slate-300"><i class="fa-solid fa-temperature-high text-rose-400"></i> Temperatura</h3>
-          <span class="text-xs text-slate-400 font-mono" id="label-range-temp">REALTIME</span>
+          <span class="text-xs text-emerald-400 font-mono font-bold">REALTIME</span>
         </div>
         <div class="relative h-60 w-full"><canvas id="chartTemperatura"></canvas></div>
       </div>
@@ -90,7 +80,7 @@
       <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 shadow-lg">
         <div class="flex justify-between mb-4">
           <h3 class="text-sm font-semibold text-slate-300"><i class="fa-solid fa-droplet text-cyan-400"></i> Humedad</h3>
-          <span class="text-xs text-slate-400 font-mono" id="label-range-hum">REALTIME</span>
+          <span class="text-xs text-emerald-400 font-mono font-bold">REALTIME</span>
         </div>
         <div class="relative h-60 w-full"><canvas id="chartHumedad"></canvas></div>
       </div>
@@ -99,7 +89,7 @@
       <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 shadow-lg">
         <div class="flex justify-between mb-4">
           <h3 class="text-sm font-semibold text-slate-300"><i class="fa-solid fa-bolt text-amber-400"></i> Voltaje</h3>
-          <span class="text-xs text-slate-400 font-mono" id="label-range-volt">REALTIME</span>
+          <span class="text-xs text-emerald-400 font-mono font-bold">REALTIME</span>
         </div>
         <div class="relative h-60 w-full"><canvas id="chartVoltaje"></canvas></div>
       </div>
@@ -109,24 +99,15 @@
 
   <script>
     const EXEC_URL = "https://script.google.com/macros/s/AKfycbw93kQEr_CzZ_Q6gPIGzUUEK5TpXPzNfaQOl7p7yYh4xXpyYfEPvTqt4b0yjH4m24Wy-A/exec";
-    
-    // TIEMPOS DE REFRESCO ÓPTIMOS SEGÚN EL FILTRO (Milisegundos)
-    const REFRESH_RANGES = {
-      realtime: 5000,  // 5 segundos (Tiempo Real)
-      '1h': 15000,     // 15 segundos
-      '12h': 30000,    // 30 segundos
-      '1d': 60000,     // 1 minuto
-      '1w': 120000     // 2 minutos
-    };
+    const REFRESH_INTERVAL = 3000; // Refresco rápido cada 3 segundos
+    const MAX_POINTS = 15; // Muestra solo los últimos 15 puntos en pantalla
 
     let isFetching = false;
-    let currentRange = "realtime";
-    let timerId = null;
 
     function createChartConfig(color, bgColor) {
       return {
         type: 'line',
-        data: { labels: [], datasets: [{ borderColor: color, backgroundColor: bgColor, data: [], borderWidth: 2, tension: 0.2, pointRadius: 2, fill: true }] },
+        data: { labels: [], datasets: [{ borderColor: color, backgroundColor: bgColor, data: [], borderWidth: 2, tension: 0.2, pointRadius: 3, fill: true }] },
         options: {
           responsive: true, maintainAspectRatio: false, animation: false,
           plugins: { legend: { display: false } },
@@ -139,35 +120,19 @@
     const chartHum = new Chart(document.getElementById('chartHumedad'), createChartConfig('#06b6d4', 'rgba(6, 182, 212, 0.1)'));
     const chartVolt = new Chart(document.getElementById('chartVoltaje'), createChartConfig('#f59e0b', 'rgba(245, 158, 11, 0.1)'));
 
-    function changeTimeRange(range) {
-      currentRange = range;
-      document.querySelectorAll('.time-btn').forEach(btn => btn.classList.remove('bg-blue-600', 'text-white'));
-      document.getElementById(`btn-${range}`)?.classList.add('bg-blue-600', 'text-white');
-      
-      ['temp', 'hum', 'volt'].forEach(id => {
-        const el = document.getElementById(`label-range-${id}`);
-        if(el) el.textContent = range.toUpperCase();
-      });
-
-      // Reiniciar temporizador adaptativo según el rango seleccionado
-      if (timerId) clearInterval(timerId);
-      fetchSensorData();
-      timerId = setInterval(fetchSensorData, REFRESH_RANGES[currentRange] || 5000);
-    }
-
     function fetchSensorData() {
       if (isFetching) return;
       isFetching = true;
 
       const callbackName = 'handleScriptResponse_' + Math.floor(Math.random() * 100000);
       
-      window[callbackName] = function(resData) {
-        procesarRespuesta(resData);
+      window[callbackName] = function(data) {
+        procesarRealtime(data);
         cleanup();
       };
 
       const script = document.createElement('script');
-      script.src = `${EXEC_URL}?range=${currentRange}&callback=${callbackName}&_=${Date.now()}`;
+      script.src = `${EXEC_URL}?callback=${callbackName}&_=${Date.now()}`;
       
       script.onerror = function() {
         setConnectionStatus(false);
@@ -183,42 +148,33 @@
       document.body.appendChild(script);
     }
 
-    function procesarRespuesta(resData) {
-      if (!resData) {
-        setConnectionStatus(false);
-        return;
-      }
-
-      setConnectionStatus(true);
-
-      if (Array.isArray(resData)) {
-        renderHistorico(resData);
-      } else if (resData && typeof resData === 'object') {
-        actualizarRealtime(resData);
-      }
-    }
-
-    // Limpia y normaliza números que vienen con coma o nulos
     function parsearValor(val) {
       if (val === undefined || val === null || val === '') return 0;
       let num = parseFloat(String(val).replace(',', '.'));
       return isNaN(num) ? 0 : num;
     }
 
-    // Normaliza cualquier formato de fecha (ISO, timestamp o HH:mm:ss)
     function parsearFecha(fechaStr) {
       if (!fechaStr) return '--';
       let str = String(fechaStr);
       if (str.includes('T')) {
-        let parts = str.split('T');
-        let time = parts[1].substring(0, 8);
-        return time;
+        return str.split('T')[1].substring(0, 8);
       }
       return str.includes(' ') ? str.split(' ')[1] : str;
     }
 
-    function actualizarRealtime(data) {
-      if (!data || data.fecha === "--" || data.fecha === "Error") return;
+    function procesarRealtime(data) {
+      // Si la respuesta es un array (por compatibilidad), tomar solo el último objeto
+      if (Array.isArray(data)) {
+        data = data[data.length - 1];
+      }
+
+      if (!data || data.fecha === "--" || data.fecha === "Error") {
+        setConnectionStatus(false);
+        return;
+      }
+
+      setConnectionStatus(true);
 
       const t = parsearValor(data.temperatura);
       const h = parsearValor(data.humedad);
@@ -230,59 +186,24 @@
       document.getElementById("val-volt").textContent = v.toFixed(2);
       document.getElementById("last-update").textContent = f;
 
-      [chartTemp, chartHum, chartVolt].forEach((chart, idx) => {
-        const val = [t, h, v][idx];
-        const lastLabel = chart.data.labels[chart.data.labels.length - 1];
-
-        if (lastLabel !== f) {
-          chart.data.labels.push(f);
-          chart.data.datasets[0].data.push(val);
-          if (chart.data.labels.length > 20) {
-            chart.data.labels.shift();
-            chart.data.datasets[0].data.shift();
+      // Actualizar gráficos solo si el timestamp es nuevo
+      const lastLabel = chartTemp.data.labels[chartTemp.data.labels.length - 1];
+      if (lastLabel !== f) {
+        [
+          { chart: chartTemp, val: t },
+          { chart: chartHum, val: h },
+          { chart: chartVolt, val: v }
+        ].forEach(item => {
+          item.chart.data.labels.push(f);
+          item.chart.data.datasets[0].data.push(item.val);
+          
+          if (item.chart.data.labels.length > MAX_POINTS) {
+            item.chart.data.labels.shift();
+            item.chart.data.datasets[0].data.shift();
           }
-          chart.update('none');
-        }
-      });
-    }
-
-    function renderHistorico(dataArray) {
-      if (!dataArray || dataArray.length === 0) return;
-
-      const ultimo = dataArray[dataArray.length - 1];
-      const tUlt = parsearValor(ultimo.temperatura);
-      const hUlt = parsearValor(ultimo.humedad);
-      const vUlt = parsearValor(ultimo.voltaje);
-      const fUlt = parsearFecha(ultimo.fecha);
-
-      document.getElementById("val-temp").textContent = tUlt.toFixed(1);
-      document.getElementById("val-hum").textContent = hUlt.toFixed(1);
-      document.getElementById("val-volt").textContent = vUlt.toFixed(2);
-      document.getElementById("last-update").textContent = fUlt;
-
-      const labels = [];
-      const tempVals = [];
-      const humVals = [];
-      const voltVals = [];
-
-      dataArray.forEach(item => {
-        labels.push(parsearFecha(item.fecha));
-        tempVals.push(parsearValor(item.temperatura));
-        humVals.push(parsearValor(item.humedad));
-        voltVals.push(parsearValor(item.voltaje));
-      });
-
-      chartTemp.data.labels = labels; 
-      chartTemp.data.datasets[0].data = tempVals; 
-      chartTemp.update('none');
-
-      chartHum.data.labels = labels; 
-      chartHum.data.datasets[0].data = humVals; 
-      chartHum.update('none');
-
-      chartVolt.data.labels = labels; 
-      chartVolt.data.datasets[0].data = voltVals; 
-      chartVolt.update('none');
+          item.chart.update('none');
+        });
+      }
     }
 
     function setConnectionStatus(isOnline) {
@@ -305,8 +226,9 @@
       }
     }
 
-    // Inicializar vista Realtime
-    changeTimeRange('realtime');
+    // Inicio de petición y refresco constante cada 3 segundos
+    fetchSensorData();
+    setInterval(fetchSensorData, REFRESH_INTERVAL);
   </script>
 </body>
 </html>
